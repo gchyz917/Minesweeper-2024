@@ -12,10 +12,11 @@
  */
 int rows;         // The count of rows of the game map. You MUST NOT modify its name.
 int columns;      // The count of columns of the game map. You MUST NOT modify its name.
-int total_mines;  // The count of mines of the game map. You MUST NOT modify its name. You should initialize this
-                  // variable in function InitMap. It will be used in the advanced task.
+int total_mines=0;  // The count of mines of the game map. You MUST NOT modify its name. You should initialize this
+                  // variable in function InitMap. It will be used in the advanced task.初始化雷的数量
 int game_state;  // The state of the game, 0 for continuing, 1 for winning, -1 for losing. You MUST NOT modify its name.
-
+char a[35][35];
+bool b[35][35];
 /**
  * @brief The definition of function InitMap()
  *
@@ -31,6 +32,17 @@ int game_state;  // The state of the game, 0 for continuing, 1 for winning, -1 f
 void InitMap() {
   std::cin >> rows >> columns;
   // TODO (student): Implement me!
+  for(int i=0;i<rows;i++){
+    for(int j=0;j<columns;j++){
+      std::cin>>a[i][j];
+      if(a[i][j]=='X') {
+        b[i][j]=0;
+        total_mines++;
+      }else  b[i][j]=1;
+      a[i][j]='?';
+    }
+  }
+
 }
 
 /**
@@ -63,8 +75,56 @@ void InitMap() {
  *
  * @note For invalid operation, you should not do anything.
  */
+int min(int a,int b){
+  return (a<b)?a:b;
+}
+int max(int a,int b){
+  return (a>b)?a:b;
+}
+void num(int x,int y){
+  int number=0;
+  for(int i=max(x-1,0);i<=min(x+1,rows-1);i++){
+    for(int j=max(y-1,0);j<=min(y+1,columns-1);j++){
+      if(b[i][j]==0) {
+        number++;
+      }
+    }
+  }
+  a[x][y]=number+'0';
+  if(a[x][y]=='0'){
+    for(int i=max(x-1,0);i<=min(x+1,rows-1);i++){
+      for(int j=max(y-1,0);j<=min(y+1,columns-1);j++){
+        if((i!=x||j!=y)&&a[i][j]=='?') num(i,j);
+      }
+    }
+  }
+}
 void VisitBlock(int r, int c) {
   // TODO (student): Implement me!
+  if(b[r][c]==0&&a[r][c]!='@'){
+    a[r][c]='X';
+    game_state=-1;
+  }else if(b[r][c]==1){
+    num(r,c);
+    game_state=1;
+    for(int i=0;i<rows;i++){
+      for(int j=0;j<columns;j++){
+        if(b[i][j]==1&&a[i][j]=='?') {
+          game_state=0;
+          break;
+        }
+      }
+      if(game_state==0) break;
+    }
+    if(game_state==1) {
+      for(int i=0;i<rows;i++) {
+        for(int j=0;j<columns;j++) {
+          if(b[i][j]==0) a[i][j]='@';
+          else if(a[i][j]=='?') num(i,j);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -73,7 +133,7 @@ void VisitBlock(int r, int c) {
  * @details This function is designed to mark a mine in the game map.
  * If the block being marked is a mine, show it as "@".
  * If the block being marked isn't a mine, END THE GAME immediately. (NOTE: This is not the same rule as the real
- * game) And you don't need to
+ * game) And you don't need to 注意 标记错雷也直接结束游戏 return -1
  *
  * For example, if we use the same map as before, and the current state is:
  *     1?1
@@ -102,6 +162,30 @@ void VisitBlock(int r, int c) {
  */
 void MarkMine(int r, int c) {
   // TODO (student): Implement me!
+  if(b[r][c]==0){
+    a[r][c]='@';
+    game_state=0;
+    int d=0;
+    for(int i=0;i<rows;i++){
+      for(int j=0;j<columns;j++){
+        if(a[i][j]=='@') d++;
+      }
+    }
+    if(d==total_mines) game_state=1;
+  }else{
+    if(a[r][c]=='?') {
+      a[r][c]='X';
+      game_state=-1;
+    }
+  }
+  if(game_state==1) {
+    for(int i=0;i<rows;i++) {
+      for(int j=0;j<columns;j++) {
+        if(b[i][j]==0) a[i][j]='@';
+        else if(a[i][j]=='?') num(i,j);
+      }
+    }
+  }
 }
 
 /**
@@ -121,6 +205,37 @@ void MarkMine(int r, int c) {
  * And the game ends (and player wins).
  */
 void AutoExplore(int r, int c) {
+  int m=0;
+  for(int i=max(0,r-1);i<=min(r+1,rows-1);i++) {
+    for(int j=max(0,c-1);j<=min(c+1,columns-1);j++) {
+      if(a[i][j]=='@') m++;
+    }
+  }
+  if(a[r][c]==m+'0') {
+    for(int i=max(0,r-1);i<=min(r+1,rows-1);i++) {
+      for(int j=max(0,c-1);j<=min(c+1,columns-1);j++) {
+        if((a[i][j]!='@')&&(i!=r||j!=c)) num(i,j);
+      }
+    }
+  }
+  game_state=1;
+  for(int i=0;i<rows;i++) {
+    for(int j=0;j<columns;j++) {
+      if(b[i][j]==1&&a[i][j]=='?') {
+        game_state=0;
+        break;
+      }
+    }
+    if(game_state==0) break;
+  }
+  if(game_state==1) {
+    for(int i=0;i<rows;i++) {
+      for(int j=0;j<columns;j++) {
+        if(b[i][j]==0) a[i][j]='@';
+        else if(a[i][j]=='?') num(i,j);
+      }
+    }
+  }
   // TODO (student): Implement me!
 }
 
@@ -134,8 +249,22 @@ void AutoExplore(int r, int c) {
  * @note If the player wins, we consider that ALL mines are correctly marked.
  */
 void ExitGame() {
+  int visit_count=0,marked_mine_count=0;
+  if(game_state==1) {
+    std::cout<<"YOU WIN!"<<std::endl;
+    std::cout<<rows*columns-total_mines<<" "<<total_mines;
+  }else {
+    std::cout<<"GAME OVER!"<<std::endl;
+    for(int i=0;i<rows;i++) {
+      for(int j=0;j<columns;j++) {
+        if(a[i][j]>='0'&&a[i][j]<='8') visit_count++;
+        if(a[i][j]=='@') marked_mine_count++;
+      }
+    }
+    std::cout<<visit_count<<" "<<marked_mine_count;
+  }
   // TODO (student): Implement me!
-  exit(0);  // Exit the game immediately
+  exit(0);// Exit the game immediately
 }
 
 /**
@@ -164,6 +293,12 @@ void ExitGame() {
  */
 void PrintMap() {
   // TODO (student): Implement me!
+  for(int i=0;i<rows;i++) {
+      for(int j=0;j<columns;j++) {
+          std::cout<<a[i][j];
+      }
+      std::cout<<std::endl;
+  }
 }
 
 #endif
